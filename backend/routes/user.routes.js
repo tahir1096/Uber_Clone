@@ -3,6 +3,7 @@ import { body } from "express-validator";
 import { registerUser } from "../controllers/user.controller.js";
 import * as useController from '../controllers/user.controller.js'
 const router = express.Router();
+import authMiddleware from '../middlewares/auth.middleware.js'
 
 
 router.post(
@@ -26,5 +27,8 @@ router.post('/login',
   body('password').notEmpty().withMessage('Password is required'),
   useController.loginUser
 )
+
+router.get('/profile', authMiddleware.authUser, useController.getUserProfile)
+
 
 export default router;
