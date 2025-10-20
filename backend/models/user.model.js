@@ -20,13 +20,20 @@ const userSchema = new mongoose.Schema({
   socketId: {
     type: String,
   },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  }
 });
 
 userSchema.methods.generateAuthToken = function () {
   return jwt.sign(
     { _id: this._id, firstname: this.firstname, lastname: this.lastname },
     process.env.JWT_SECRET,
-    { expiresIn: "1d" } 
+    { expiresIn: "1d" }
   );
 };
 

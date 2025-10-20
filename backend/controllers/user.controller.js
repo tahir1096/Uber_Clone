@@ -9,7 +9,7 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { firstname, lastname, password } = req.body;
+  const { firstname, lastname, email, password } = req.body;
 
     // hash password before saving
     const hashedPassword = await User.hashPassword(password);
@@ -17,6 +17,7 @@ export const registerUser = async (req, res) => {
     const user = new User({
       firstname,
       lastname,
+      email,
       password: hashedPassword,
     });
 
@@ -46,7 +47,7 @@ export const loginUser = async (req, res) => {
     return res.status(400).json({errors:errors.array()});
   }
   const {email, password} = req.body;
-  const user = await useModel.findOne({email}).select('+password');
+  const user = await User.findOne({email}).select('+password');
   if(!user){
     return res.status(401).json({message: 'Invalid email or password'});
   }
