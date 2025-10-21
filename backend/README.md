@@ -187,6 +187,91 @@ Status: 500 Internal Server Error
 }
 ```
 
+## Additional endpoint: /user/profile
+
+- URL: `/user/profile`
+- Method: `GET`
+- Purpose: Return the authenticated user's profile information. Requires a valid JWT provided either in the `Authorization: Bearer <token>` header or as the `authToken` cookie (set during login).
+
+### Request requirements
+
+- Authorization header (preferred): `Authorization: Bearer <jwt>`
+- or Cookie: `authToken=<jwt>`
+
+No request body is required.
+
+### Success (200 OK)
+
+Returned when the provided token is valid and the user is found.
+
+```json
+Status: 200 OK
+{
+  "_id": "6421a7e8e1f3c2a5d4b6c7f8",
+  "firstname": "Alice",
+  "lastname": "Smith",
+  "email": "alice@example.com"
+}
+```
+
+### Unauthorized (401 Unauthorized)
+
+Returned when the token is missing, expired, blacklisted, or invalid.
+
+```json
+Status: 401 Unauthorized
+{
+  "message": "Invalid token."
+}
+```
+
+If the token is absent, the message will be `Access denied. No token provided.`; if the token is blacklisted (e.g., after logout), the message will be `Token has been revoked. Please log in again.`
+
+### Notes
+
+- The route is protected by `auth.middleware.js`, which verifies the JWT and checks the blacklist collection.
+- The controller `getUserProfile` simply returns the user document attached to `req.user` by the middleware.
+
+## Additional endpoint: /user/logout
+
+- URL: `/user/logout`
+- Method: `POST`
+- Purpose: Invalidate the current session by blacklisting the JWT and clearing the `authToken` cookie. Requires authentication.
+
+### Request requirements
+
+- Authorization header: `Authorization: Bearer <jwt>` **or** cookie `authToken=<jwt>`
+- No request body is required.
+
+### Success (200 OK)
+
+Returned when the token is successfully blacklisted (or was already blacklisted) and the cookie cleared.
+
+```json
+Status: 200 OK
+{
+  "message": "Logout successful ✅"
+}
+```
+
+### Unauthorized (401 Unauthorized)
+
+Returned when no token is provided, the token is invalid, or already revoked.
+
+```json
+Status: 401 Unauthorized
+{
+  "message": "Access denied. No token provided."
+}
+```
+
+If a token is supplied but invalid or expired, you'll receive `Invalid token.`; if it has been blacklisted previously, the message will be `Token has been revoked. Please log in again.`
+
+### Notes
+
+- The controller `logoutUser` clears the cookie and stores the token using `BlacklistToken.blacklist`, which relies on the TTL index to auto-expire entries after 24 hours.
+- The `auth.middleware` checks the blacklist before accepting a token, so subsequent requests with a blacklisted token will fail.
+
 ## Quick test with curl (PowerShell) for login
 
 ```powershell

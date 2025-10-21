@@ -5,7 +5,7 @@ import cookieparser from 'cookie-parser';
 import dotenv from 'dotenv';
 dotenv.config();
 import userRoutes from './routes/user.routes.js';
-
+import captainRoutes from './routes/captain.routes.js';
 const app = express();
 connectDB();
 
@@ -15,5 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieparser());
 
 app.use("/user", userRoutes);
+app.use('/captain', captainRoutes);
+
 
 export default app;

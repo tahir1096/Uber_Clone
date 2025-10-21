@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
 import User from "../models/user.model.js";
+import BlacklistToken from "../models/blacklistToken.model.js";
 
 export const registerUser = async (req, res) => {
   try {
@@ -9,7 +10,13 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-  const { firstname, lastname, email, password } = req.body;
+
+    const { firstname, lastname, email, password } = req.body;
+
+    const isUserAlreadyExist = await User.findOne({ email });
+    if (isUserAlreadyExist) {
+      return res.status(409).json({ message: "User already exists" });
+    }
 
     // hash password before saving
     const hashedPassword = await User.hashPassword(password);
@@ -44,19 +51,20 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({errors:errors.array()});
+    return res.status(400).json({ errors: errors.array() });
   }
-  const {email, password} = req.body;
-  const user = await User.findOne({email}).select('+password');
-  if(!user){
-    return res.status(401).json({message: 'Invalid email or password'});
+  const { email, password } = req.body;
+  const user = await User.findOne({ email }).select('+password');
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid email or password' });
   }
   const isMatch = await user.comparePassword(password);
-  if(!isMatch){
-    return res.status(401).json({message: 'Invalid email or password'});
+  if (!isMatch) {
+    return res.status(401).json({ message: 'Invalid email or password' });
   }
 
   const token = user.generateAuthToken();
+  res.cookie('authToken', token);
   res.status(200).json({
     message: 'Login successful ✅',
     token,
@@ -64,8 +72,17 @@ export const loginUser = async (req, res) => {
       email: user.email,
       _id: user._id,
     },
-  })};
+  })
+};
 
-export const getUserProfile = async (req, res) => { 
+export const getUserProfile = async (req, res) => {
   res.status(200).json(req.user);
+};
+export const logoutUser = async (req, res) => {
+  res.clearCookie('authToken');
+  const token = req.cookies.authToken || req.header('Authorization')?.replace('Bearer ', '');
+  if (token) {
+    await BlacklistToken.blacklist(token);
+  }
+  res.status(200).json({ message: 'Logout successful ✅' });
 };
