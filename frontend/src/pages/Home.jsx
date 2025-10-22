@@ -1,4 +1,5 @@
 import React from 'react'
+import lucide from 'lucide-react'
 
 const Home = () => {
   return (
@@ -11,7 +12,7 @@ const Home = () => {
           />
           <div>
             <h2> Get Started with Uber</h2>
-              <button>
+              <button >
                 Continue
               </button>
             
