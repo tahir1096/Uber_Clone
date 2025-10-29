@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 import userRoutes from './routes/user.routes.js';
 import captainRoutes from './routes/captain.routes.js';
+import rideRoutes from './routes/ride.routes.js';
 const app = express();
 connectDB();
 
@@ -16,6 +17,7 @@ app.use(cookieparser());
 
 app.use("/user", userRoutes);
 app.use('/captain', captainRoutes);
+app.use('/ride', rideRoutes);
 
 
 export default app;
