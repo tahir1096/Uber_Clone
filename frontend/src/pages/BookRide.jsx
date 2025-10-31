@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SupabaseAuthContext } from '../context/SupabaseAuthContext';
-import { ArrowLeft, MapPin, Navigation, Search, Clock, Users } from 'lucide-react';
+import { ArrowLeft, MapPin, Navigation, Search, Clock, Users, Loader } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,6 +13,35 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.3.1/images/marker-shadow.png',
 });
 
+// Create custom icons for different marker types
+const createCustomIcon = (type) => {
+  let html = '';
+  if (type === 'pickup') {
+    html = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" fill="none">
+      <path d="M16 0C7.2 0 0 7.2 0 16c0 13.2 16 24 16 24s16-10.8 16-24c0-8.8-7.2-16-16-16z" fill="#2563eb" stroke="#1e40af" stroke-width="1"/>
+      <circle cx="16" cy="16" r="6" fill="white"/>
+    </svg>`;
+  } else if (type === 'dropoff') {
+    html = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" fill="none">
+      <path d="M16 0C7.2 0 0 7.2 0 16c0 13.2 16 24 16 24s16-10.8 16-24c0-8.8-7.2-16-16-16z" fill="#dc2626" stroke="#991b1b" stroke-width="1"/>
+      <circle cx="16" cy="16" r="6" fill="white"/>
+    </svg>`;
+  } else if (type === 'current') {
+    html = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 40" fill="none">
+      <path d="M16 0C7.2 0 0 7.2 0 16c0 13.2 16 24 16 24s16-10.8 16-24c0-8.8-7.2-16-16-16z" fill="#10b981" stroke="#047857" stroke-width="1"/>
+      <circle cx="16" cy="16" r="6" fill="white"/>
+    </svg>`;
+  }
+  
+  return L.divIcon({
+    html: html,
+    iconSize: [32, 40],
+    iconAnchor: [16, 40],
+    popupAnchor: [0, -40],
+    className: 'custom-marker'
+  });
+};
+
 // Sample location data
 const sampleLocations = [
   { name: 'Defence, Lahore', lat: 31.5497, lng: 74.3436 },
@@ -24,10 +52,45 @@ const sampleLocations = [
   { name: 'Gulberg, Lahore', lat: 31.5622, lng: 74.2167 },
 ];
 
+// SVG icons for ride types
+const rideTypeIcons = {
+  bike: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+    <rect width="200" height="200" fill="#f3f4f6" rx="8"/>
+    <g transform="translate(50, 50)">
+      <circle cx="15" cy="50" r="15" stroke="#1f2937" stroke-width="3" fill="none"/>
+      <circle cx="85" cy="50" r="15" stroke="#1f2937" stroke-width="3" fill="none"/>
+      <rect x="30" y="35" width="40" height="30" stroke="#1f2937" stroke-width="3" fill="none" rx="3"/>
+      <circle cx="50" cy="30" r="4" fill="#1f2937"/>
+      <line x1="50" y1="30" x2="50" y2="50" stroke="#1f2937" stroke-width="2"/>
+    </g>
+  </svg>`,
+  rickshaw: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+    <rect width="200" height="200" fill="#f3f4f6" rx="8"/>
+    <g transform="translate(25, 45)">
+      <circle cx="15" cy="65" r="12" stroke="#1f2937" stroke-width="3" fill="none"/>
+      <circle cx="135" cy="65" r="12" stroke="#1f2937" stroke-width="3" fill="none"/>
+      <path d="M 30 70 L 45 20 L 120 20 L 135 70" stroke="#1f2937" stroke-width="3" fill="none" stroke-linejoin="round"/>
+      <rect x="50" y="15" width="40" height="25" fill="#f97316" opacity="0.3" rx="2"/>
+      <line x1="20" y1="50" x2="130" y2="50" stroke="#1f2937" stroke-width="2"/>
+    </g>
+  </svg>`,
+  car: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+    <rect width="200" height="200" fill="#f3f4f6" rx="8"/>
+    <g transform="translate(20, 50)">
+      <circle cx="20" cy="60" r="15" stroke="#1f2937" stroke-width="3" fill="none"/>
+      <circle cx="140" cy="60" r="15" stroke="#1f2937" stroke-width="3" fill="none"/>
+      <path d="M 20 70 L 35 35 L 125 35 L 140 70 Z" stroke="#1f2937" stroke-width="3" fill="none" stroke-linejoin="round"/>
+      <rect x="50" y="25" width="50" height="25" stroke="#1f2937" stroke-width="2" fill="#e0e7ff" rx="3"/>
+      <rect x="35" y="45" width="25" height="15" stroke="#1f2937" stroke-width="1.5" fill="none" rx="2"/>
+      <rect x="100" y="45" width="25" height="15" stroke="#1f2937" stroke-width="1.5" fill="none" rx="2"/>
+    </g>
+  </svg>`
+};
+
 const rideTypes = [
-  { id: 'bike', name: 'Bike', perKm: 10, description: 'Budget-friendly option for 1 person', icon: '🏍️', image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&h=200&fit=crop', capacity: 1 },
-  { id: 'rickshaw', name: 'Rickshaw', perKm: 15, description: 'Economy ride for 3 passengers', icon: '🛺', image: 'https://images.unsplash.com/photo-1533473359331-35ac8b3fd8e9?w=200&h=200&fit=crop', capacity: 3 },
-  { id: 'car', name: 'Car', perKm: 30, description: 'Comfortable ride for 4 passengers', icon: '🚗', image: 'https://images.unsplash.com/photo-1552820728-8ac41f1ce891?w=200&h=200&fit=crop', capacity: 4 },
+  { id: 'bike', name: 'Bike', perKm: 10, description: 'Budget-friendly option for 1 person', icon: rideTypeIcons.bike, capacity: 1 },
+  { id: 'rickshaw', name: 'Rickshaw', perKm: 15, description: 'Economy ride for 3 passengers', icon: rideTypeIcons.rickshaw, capacity: 3 },
+  { id: 'car', name: 'Car', perKm: 30, description: 'Comfortable ride for 4 passengers', icon: rideTypeIcons.car, capacity: 4 },
 ];
 
 const MapUpdater = ({ location }) => {
@@ -56,9 +119,39 @@ const BookRide = () => {
   const [showLocationSearch, setShowLocationSearch] = useState(false);
   const [currentMapCenter, setCurrentMapCenter] = useState({ lat: 31.5497, lng: 74.3436 });
   const [bookingStatus, setBookingStatus] = useState('idle');
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
   const handleGoBack = () => {
     navigate('/user-dashboard');
+  };
+
+  // Get current location from device
+  const getCurrentLocation = () => {
+    setLoadingLocation(true);
+    
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser');
+      setLoadingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const location = { lat: latitude, lng: longitude, name: 'Your Current Location' };
+        setCurrentLocation(location);
+        setCurrentMapCenter(location);
+        setLoadingLocation(false);
+        // Auto-select as pickup location
+        selectLocation(location, 'pickup');
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        alert('Unable to access your location. Please check permissions.');
+        setLoadingLocation(false);
+      }
+    );
   };
 
   const handleLocationSearch = (query) => {
@@ -168,37 +261,57 @@ const BookRide = () => {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left - Map */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-96 lg:h-full">
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden h-96 lg:h-[500px] relative">
               <MapContainer
                 center={[currentMapCenter.lat, currentMapCenter.lng]}
                 zoom={15}
-                style={{ height: '100%', width: '100%' }}
+                style={{ height: '100%', width: '100%', zIndex: 1 }}
+                zoomControl={true}
               >
                 <TileLayer
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                   attribution='&copy; OpenStreetMap contributors'
                 />
+                {currentLocation && (
+                  <Marker position={[currentLocation.lat, currentLocation.lng]} icon={createCustomIcon('current')}>
+                    <Popup>📍 {currentLocation.name}</Popup>
+                  </Marker>
+                )}
                 {pickupLocation && (
-                  <Marker position={[pickupLocation.lat, pickupLocation.lng]}>
-                    <Popup>Pickup: {pickupLocation.name}</Popup>
+                  <Marker position={[pickupLocation.lat, pickupLocation.lng]} icon={createCustomIcon('pickup')}>
+                    <Popup>📍 Pickup: {pickupLocation.name}</Popup>
                   </Marker>
                 )}
                 {dropoffLocation && (
-                  <Marker position={[dropoffLocation.lat, dropoffLocation.lng]}>
-                    <Popup>Dropoff: {dropoffLocation.name}</Popup>
+                  <Marker position={[dropoffLocation.lat, dropoffLocation.lng]} icon={createCustomIcon('dropoff')}>
+                    <Popup>📍 Dropoff: {dropoffLocation.name}</Popup>
                   </Marker>
                 )}
                 <MapUpdater location={currentMapCenter} />
               </MapContainer>
+              
+              {/* Current Location Button - Positioned on map */}
+              <button
+                onClick={getCurrentLocation}
+                disabled={loadingLocation}
+                className="absolute bottom-4 right-4 z-50 bg-white p-3 rounded-full shadow-lg hover:bg-gray-50 disabled:opacity-50 transition border border-gray-200"
+                title="Get current location"
+              >
+                {loadingLocation ? (
+                  <Loader className="w-5 h-5 animate-spin text-blue-600" />
+                ) : (
+                  <Navigation className="w-5 h-5 text-blue-600" />
+                )}
+              </button>
             </div>
           </div>
 
           {/* Right - Booking Panel */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 h-fit sticky top-24">
+          <div className="bg-white rounded-2xl shadow-lg p-6 h-fit lg:sticky lg:top-24 z-30">
             <div className="space-y-6">
               {/* Progress Steps */}
               <div className="flex justify-between mb-6">
@@ -232,6 +345,18 @@ const BookRide = () => {
                         }}
                         className="flex-1 outline-none bg-transparent"
                       />
+                      <button
+                        onClick={getCurrentLocation}
+                        disabled={loadingLocation}
+                        title="Use current location"
+                        className="p-1 hover:bg-blue-50 rounded transition disabled:opacity-50"
+                      >
+                        {loadingLocation ? (
+                          <Loader className="w-5 h-5 animate-spin text-blue-600" />
+                        ) : (
+                          <Navigation className="w-5 h-5 text-blue-600" />
+                        )}
+                      </button>
                       <Search className="w-5 h-5 text-gray-400" />
                     </div>
                     {showLocationSearch && filteredLocations.length > 0 && (
@@ -380,13 +505,9 @@ const BookRide = () => {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <img 
-                                src={ride.image} 
-                                alt={ride.name}
-                                className="w-16 h-16 object-cover rounded-lg"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                }}
+                              <div 
+                                className="w-16 h-16 flex-shrink-0"
+                                dangerouslySetInnerHTML={{ __html: ride.icon }}
                               />
                               <div>
                                 <p className="font-bold text-gray-900">{ride.name}</p>
