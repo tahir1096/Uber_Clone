@@ -11,13 +11,18 @@
   },
   "dependencies": {
     "@react-oauth/google": "^0.12.1",
+    "@supabase/auth-ui-react": "^0.4.7",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "@supabase/supabase-js": "^2.78.0",
     "@tailwindcss/postcss": "^4.1.16",
     "@tailwindcss/vite": "^4.1.15",
     "axios": "^1.7.7",
     "framer-motion": "^12.23.24",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-leaflet": "^5.0.0",
     "react-router-dom": "^7.9.4",
     "socket.io-client": "^4.8.0"
   },

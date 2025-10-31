@@ -1,26 +1,53 @@
-import { useContext, useEffect } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CaptainContext } from '../context/CaptainContext';
+import { SupabaseAuthContext } from '../context/SupabaseAuthContext';
 import { Car, LogOut, TrendingUp, DollarSign, Users } from 'lucide-react';
 
 const CaptainDashboard = () => {
-  const { captain, logout, isAuthenticated } = useContext(CaptainContext);
+  const { user, signOut, loading, captainData, isOnline, setIsOnline } = useContext(SupabaseAuthContext);
   const navigate = useNavigate();
+  const [onlineStatus, setOnlineStatus] = useState(isOnline);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!loading && !user) {
       navigate('/captain-login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [user, loading, navigate]);
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate('/');
   };
 
-  if (!captain) {
+  const handleGoOnline = () => {
+    setOnlineStatus(!onlineStatus);
+    setIsOnline(!onlineStatus);
+  };
+
+  if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
+
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
+  }
+
+  // Get captain name from signup data or email
+  const getCaptainName = () => {
+    if (captainData?.firstname && captainData?.lastname) {
+      return `${captainData.firstname} ${captainData.lastname}`;
+    }
+    if (captainData?.firstname) {
+      return captainData.firstname;
+    }
+    // Extract from email if no name available
+    const emailPart = user?.email?.split('@')[0] || 'Captain';
+    const namePart = emailPart.replace(/[0-9.-]/g, '');
+    return namePart.toUpperCase() || 'CAPTAIN';
+  };
+
+  // Use user data from Supabase
+  const captain = user;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,7 +62,7 @@ const CaptainDashboard = () => {
             <div>
               <p className="text-sm text-gray-600">Captain</p>
               <p className="font-semibold text-gray-900">
-                {captain.firstname} {captain.lastname || ''}
+                {getCaptainName()}
               </p>
             </div>
             <button
@@ -55,13 +82,22 @@ const CaptainDashboard = () => {
         <div className="bg-white p-8 rounded-2xl shadow-lg mb-8">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-gray-900">Online Status</h2>
-            <button className="px-6 py-3 bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition">
-              Go Online
+            <button 
+              onClick={handleGoOnline}
+              className={`px-6 py-3 text-white rounded-full font-semibold transition ${
+                onlineStatus ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {onlineStatus ? 'Go Offline' : 'Go Online'}
             </button>
           </div>
-          <div className="bg-green-50 border-2 border-green-200 p-6 rounded-lg">
-            <p className="text-green-800 font-semibold">Currently Offline</p>
-            <p className="text-green-700 text-sm mt-1">Turn on to start accepting rides</p>
+          <div className={`${onlineStatus ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'} border-2 p-6 rounded-lg`}>
+            <p className={`${onlineStatus ? 'text-red-800' : 'text-green-800'} font-semibold`}>
+              {onlineStatus ? 'Currently Online' : 'Currently Offline'}
+            </p>
+            <p className={`${onlineStatus ? 'text-red-700' : 'text-green-700'} text-sm mt-1`}>
+              {onlineStatus ? 'You are accepting ride requests' : 'Turn on to start accepting rides'}
+            </p>
           </div>
         </div>
 
@@ -71,9 +107,9 @@ const CaptainDashboard = () => {
           <div className="bg-white p-8 rounded-2xl shadow-lg">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-gray-900">Today's Earnings</h3>
-              <DollarSign className="w-6 h-6 text-green-600" />
+              {/* <Rupee className="w-6 h-6 text-green-600" /> */}
             </div>
-            <p className="text-3xl font-bold text-green-600 mb-2">₹0.00</p>
+            <p className="text-3xl font-bold text-green-600 mb-2">₨0.00</p>
             <p className="text-sm text-gray-600">0 rides completed</p>
           </div>
 
@@ -83,8 +119,24 @@ const CaptainDashboard = () => {
               <h3 className="text-lg font-bold text-gray-900">Vehicle</h3>
               <Car className="w-6 h-6 text-blue-600" />
             </div>
-            <p className="text-lg font-semibold text-gray-900 mb-2">{captain.vehicleDetails?.vehicleType || 'N/A'}</p>
-            <p className="text-sm text-gray-600">{captain.vehicleDetails?.color || 'N/A'} - {captain.vehicleDetails?.plateNumber || 'N/A'}</p>
+            <p className="text-lg font-semibold text-gray-900 mb-2">
+              {captainData?.vehicleType || 'N/A'}
+            </p>
+            <p className="text-sm text-gray-600 mb-3">
+              {captainData?.vehicleColor || 'N/A'} - {captainData?.plateNumber || 'N/A'}
+            </p>
+            <div className="mt-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-gray-500">Model</p>
+                  <p className="text-sm font-semibold text-gray-900">{captainData?.vehicleModel || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Seating</p>
+                  <p className="text-sm font-semibold text-gray-900">{captainData?.seatingCapacity || 'N/A'} person</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Rating */}
@@ -105,7 +157,7 @@ const CaptainDashboard = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-gray-600">Total Earnings</span>
-                <span className="text-xl font-bold text-gray-900">₹0.00</span>
+                <span className="text-xl font-bold text-gray-900">₨0.00</span>
               </div>
               <div className="flex justify-between items-center pb-4 border-b">
                 <span className="text-gray-600">Rides Completed</span>
@@ -142,13 +194,26 @@ const CaptainDashboard = () => {
         {/* Available Rides Section */}
         <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
           <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Available Rides</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{onlineStatus ? 'Waiting for Rides' : 'No Available Rides'}</h2>
           <p className="text-gray-600 mb-6">
-            Go online to start accepting rides from nearby passengers
+            {onlineStatus ? 'You are online and ready to accept rides' : 'Go online to start accepting rides from nearby passengers'}
           </p>
-          <button className="px-8 py-3 bg-green-600 text-white rounded-full font-semibold hover:bg-green-700 transition">
-            Go Online Now
-          </button>
+          <div className="flex gap-4 justify-center">
+            <button 
+              onClick={handleGoOnline}
+              className={`px-8 py-3 text-white rounded-full font-semibold transition ${
+                onlineStatus ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
+            >
+              {onlineStatus ? 'Go Offline' : 'Go Online Now'}
+            </button>
+            <button
+              onClick={() => navigate('/ride-tracking')}
+              className="px-8 py-3 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 transition"
+            >
+              View Ride Tracking (Demo)
+            </button>
+          </div>
         </div>
       </main>
     </div>

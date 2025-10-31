@@ -2,7 +2,7 @@ import { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User, Loader } from 'lucide-react';
-import { CaptainContext } from '../context/CaptainContext';
+import { SupabaseAuthContext } from '../context/SupabaseAuthContext';
 
 const CaptainSignUp = () => {
   const [formData, setFormData] = useState({
@@ -23,7 +23,7 @@ const CaptainSignUp = () => {
   const [error, setError] = useState('');
   const [step, setStep] = useState(1); // 1: Personal Info, 2: Vehicle Info
 
-  const { register } = useContext(CaptainContext);
+  const { signUp } = useContext(SupabaseAuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -86,26 +86,25 @@ const CaptainSignUp = () => {
 
     setLoading(true);
 
-    const result = await register(
-      {
-        firstname: formData.firstname,
-        lastname: formData.lastname,
-      },
-      formData.email,
-      formData.password,
-      {
-        color: formData.vehicleColor,
-        plateNumber: formData.plateNumber,
-        seatingCapacity: parseInt(formData.seatingCapacity),
-        vehicleType: formData.vehicleType,
-        model: formData.vehicleModel,
-      }
-    );
+    // Sign up with Supabase and pass vehicle details
+    const result = await signUp(formData.email, formData.password, {
+      firstname: formData.firstname,
+      lastname: formData.lastname,
+      vehicleType: formData.vehicleType,
+      vehicleColor: formData.vehicleColor,
+      plateNumber: formData.plateNumber,
+      vehicleModel: formData.vehicleModel,
+      seatingCapacity: formData.seatingCapacity,
+    });
 
     if (result.success) {
-      navigate('/captain-dashboard');
+      setError('Check your email for confirmation link!');
+      // User can log in after confirming email
+      setTimeout(() => {
+        navigate('/captain-login');
+      }, 2000);
     } else {
-      setError(result.message);
+      setError(result.error || 'Sign up failed');
     }
     setLoading(false);
   };
@@ -289,12 +288,12 @@ const CaptainSignUp = () => {
                   name="vehicleType"
                   value={formData.vehicleType}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition"
+                  className="w-full px-4 py-3 bg-white border border-white/20 rounded-lg text-black focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition hover:bg-black hover:text-white"
                 >
-                  <option value="">Select vehicle type</option>
-                  <option value="car">Car</option>
-                  <option value="bike">Bike</option>
-                  <option value="auto-rikshaw">Auto Rikshaw</option>
+                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Select vehicle type</option>
+                  <option value="car" style={{ backgroundColor: 'white', color: 'black' }}>Car</option>
+                  <option value="bike" style={{ backgroundColor: 'white', color: 'black' }}>Bike</option>
+                  <option value="auto-rikshaw" style={{ backgroundColor: 'white', color: 'black' }}>Auto Rikshaw</option>
                 </select>
               </div>
 
@@ -352,15 +351,15 @@ const CaptainSignUp = () => {
                   name="seatingCapacity"
                   value={formData.seatingCapacity}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition"
+                  className="w-full px-4 py-3 bg-white border border-white/20 rounded-lg text-black focus:outline-none focus:border-green-500 focus:ring-2 focus:ring-green-500/20 transition hover:bg-black hover:text-white"
                 >
-                  <option value="">Select seating capacity</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6+</option>
+                  <option value="" style={{ backgroundColor: 'white', color: 'black' }}>Select seating capacity</option>
+                  <option value="1" style={{ backgroundColor: 'white', color: 'black' }}>1</option>
+                  <option value="2" style={{ backgroundColor: 'white', color: 'black' }}>2</option>
+                  <option value="3" style={{ backgroundColor: 'white', color: 'black' }}>3</option>
+                  <option value="4" style={{ backgroundColor: 'white', color: 'black' }}>4</option>
+                  <option value="5" style={{ backgroundColor: 'white', color: 'black' }}>5</option>
+                  <option value="6" style={{ backgroundColor: 'white', color: 'black' }}>6+</option>
                 </select>
               </div>
 

@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, User, Loader } from "lucide-react";
-import { UserContext } from "../context/UserContext";
+import { SupabaseAuthContext } from "../context/SupabaseAuthContext";
 
 const UserSignUp = () => {
   const [formData, setFormData] = useState({
@@ -17,7 +17,7 @@ const UserSignUp = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { register } = useContext(UserContext);
+  const { signUp } = useContext(SupabaseAuthContext);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -64,17 +64,17 @@ const UserSignUp = () => {
       return;
     }
 
-    const result = await register(
-      formData.firstname,
-      formData.lastname,
-      formData.email,
-      formData.password
-    );
+    // Sign up with Supabase
+    const result = await signUp(formData.email, formData.password);
 
     if (result.success) {
-      navigate("/user-dashboard");
+      setError("Check your email for confirmation link!");
+      // User can log in after confirming email
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
     } else {
-      setError(result.message);
+      setError(result.error || "Sign up failed");
     }
     setLoading(false);
   };

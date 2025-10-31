@@ -1,25 +1,62 @@
 import { useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserContext } from '../context/UserContext';
+import { SupabaseAuthContext } from '../context/SupabaseAuthContext';
 import { MapPin, Phone, LogOut, Home as HomeIcon, History } from 'lucide-react';
 
 const UserDashboard = () => {
-  const { user, logout, isAuthenticated } = useContext(UserContext);
+  const { user, signOut, loading } = useContext(SupabaseAuthContext);
   const navigate = useNavigate();
 
+  // Function to format member since date
+  const getMemberSinceDate = () => {
+    if (!user?.created_at) return 'Jan 2025';
+    
+    const createdDate = new Date(user.created_at);
+    const options = { year: 'numeric', month: 'short' };
+    return createdDate.toLocaleDateString('en-US', options);
+  };
+
+  // Function to extract and format username in capitals
+  const getUserName = () => {
+    if (!user?.email) return 'USER';
+    
+    // Extract the part before '@' and before any numbers
+    const emailPart = user.email.split('@')[0];
+    // Remove any numbers and special characters, keep only letters
+    const namePart = emailPart.replace(/[0-9.-]/g, '');
+    // Return in uppercase
+    return namePart.toUpperCase() || 'USER';
+  };
+
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!loading && !user) {
       navigate('/login');
     }
-  }, [isAuthenticated, navigate]);
+  }, [user, loading, navigate]);
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate('/');
   };
 
-  if (!user) {
+  const handleBookRide = () => {
+    navigate('/book-ride');
+  };
+
+  const handleRideHistory = () => {
+    navigate('/ride-history');
+  };
+
+  const handleSupport = () => {
+    navigate('/support');
+  };
+
+  if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
+  if (!user) {
+    return <div className="flex items-center justify-center h-screen">Redirecting...</div>;
   }
 
   return (
@@ -32,7 +69,7 @@ const UserDashboard = () => {
           </div>
 
           <div className="flex items-center gap-6">
-            <span className="text-gray-700">Welcome, {user.firstname}!</span>
+            <span className="text-gray-700">Welcome, {getUserName()}!</span>
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
@@ -52,17 +89,17 @@ const UserDashboard = () => {
           <div className="bg-white p-8 rounded-2xl shadow-lg">
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                {user.firstname[0]}
+                {getUserName()?.[0] || 'U'}
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
-                  {user.firstname} {user.lastname || ''}
+                  {getUserName()}
                 </h3>
-                <p className="text-sm text-gray-600">{user.email}</p>
+                <p className="text-sm text-gray-600">{user?.email}</p>
               </div>
             </div>
             <div className="space-y-3 border-t pt-4">
-              <p className="text-sm text-gray-600">Member since: Jan 2025</p>
+              <p className="text-sm text-gray-600">Member since: {getMemberSinceDate()}</p>
               <p className="text-sm text-gray-600">Rides Completed: 0</p>
               <p className="text-sm text-gray-600">Rating: 5.0 ⭐</p>
             </div>
@@ -72,15 +109,15 @@ const UserDashboard = () => {
           <div className="bg-white p-8 rounded-2xl shadow-lg">
             <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <button className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
+              <button onClick={handleBookRide} className="w-full flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition">
                 <MapPin className="w-5 h-5 text-blue-600" />
                 <span className="text-gray-700">Book a Ride</span>
               </button>
-              <button className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={handleRideHistory} className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
                 <History className="w-5 h-5 text-gray-600" />
                 <span className="text-gray-700">Ride History</span>
               </button>
-              <button className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
+              <button onClick={handleSupport} className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition">
                 <Phone className="w-5 h-5 text-gray-600" />
                 <span className="text-gray-700">Support</span>
               </button>
@@ -93,7 +130,7 @@ const UserDashboard = () => {
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-600 mb-1">Total Spent</p>
-                <p className="text-2xl font-bold text-gray-900">₹0.00</p>
+                <p className="text-2xl font-bold text-gray-900">₨0.00</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 mb-1">Rides Taken</p>
@@ -112,9 +149,9 @@ const UserDashboard = () => {
           <HomeIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Your Dashboard</h2>
           <p className="text-gray-600 mb-6">
-            Ready to start? Book your first ride and get ₹100 discount on your ride!
+            Ready to start? Book your first ride and get ₨100 discount on your ride!
           </p>
-          <button className="px-8 py-3 bg-black text-white rounded-full font-semibold hover:bg-gray-800 transition">
+          <button onClick={handleBookRide} className="px-8 py-3 bg-black text-white rounded-full font-semibold hover:bg-gray-800 transition">
             Book a Ride Now
           </button>
         </div>
