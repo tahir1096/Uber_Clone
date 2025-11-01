@@ -25,11 +25,8 @@ const Home = () => {
   // Time options
   const timeOptions = [
     'now',
-    '15 mins',
-    '30 mins',
-    '1 hour',
-    '2 hours',
-    '3 hours'
+    '7:00 AM',
+    '8:00 AM',
   ];
 
   // Handle booking
@@ -129,7 +126,7 @@ const Home = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 bg-white p-15">
+      <section className="relative pt-20 pb-10 bg-white p-5">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Left Content */}
           <motion.div
@@ -189,7 +186,8 @@ const Home = () => {
 
                 {/* Divider */}
                 <div className="flex justify-center py-2">
-                  <div className="text-gray-400">━</div>
+                  {/* <div className="text-gray-400">━</div> */}
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down-icon lucide-arrow-down"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg> 
                 </div>
 
                 {/* Dropoff Location */}
